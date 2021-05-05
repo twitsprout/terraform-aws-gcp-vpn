@@ -1,7 +1,6 @@
 # Create a VPC to launch our instances into
 resource "aws_vpc" "default" {
   cidr_block           = "10.0.0.0/16"
-  cidr_block           = var.vpc_cidr_block
   enable_dns_hostnames = true
 
   tags {
@@ -38,11 +37,26 @@ resource "aws_subnet" "default" {
   }
 }
 
-module "vpn" {
-  source = "nicholasjackson/aws/"
+# Create a VPC to launch our instances into
+resource "google_compute_network" "vpc" {
+  auto_create_subnetworks = false
+  name                    = "vpc"
+  routing_mode            = "REGIONAL"
+}
 
-  aws_cidr = "10.0.0.0/16"
-  gcp_cidr = "10.128.0.0/20"
+resource "google_compute_subnetwork" "vpc_subnetworks" {
+  ip_cidr_range = "10.128.0.0/20"
+  name          = "vpc-subnetworks"
+  network       = google_compute_network.vpc.id
+  project       = "project"
+  region        = "us-east-1"
+}
+
+module "gcp-vpn" {
+  source  = "build-and-run/gcp-vpn/aws"
+  version = "0.2.0"
+
+  gcp_cidr = google_compute_subnetwork.vpc_subnetworks.ip_cidr_range
 
   aws_region = "eu-west-1"
   gcp_region = "us-east-1"
@@ -50,4 +64,7 @@ module "vpn" {
   aws_vpc            = aws_vpc.default.id
   aws_sg             = aws_security_group.allow_nomad.id
   aws_route_table_id = aws_vpc.default.main_route_table_id
+
+  gcp_network        = google_compute_network.vpc.id
+  gcp_asn            = 65500
 }

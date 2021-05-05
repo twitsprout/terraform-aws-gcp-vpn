@@ -25,12 +25,6 @@ variable "tags" {
 }
 
 # bellow are specific modules variables
-
-variable "aws_cidr" {
-  description = "CIDR group for AWS network"
-  type        = string
-}
-
 variable "gcp_cidr" {
   description = "CIDR group for GCP network"
   type        = string
