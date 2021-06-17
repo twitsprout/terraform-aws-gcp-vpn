@@ -1,16 +1,15 @@
 resource "google_compute_ha_vpn_gateway" "ha_vpn_gateway" {
-  name    = "ha-vpn-gateway"
+  name    = var.name
   network = var.gcp_network
-  region  = var.gcp_region
 
   # NB: tags not supported here
   # tags = merge({Name = var.name}, local.interpolated_tags)
 }
 
 resource "google_compute_router" "ha_vpn_gateway_router" {
-  name        = "ha-vpn-gateway-router"
+  name        = var.name
   network     = var.gcp_network
-  description = "Google to AWS via Transit GW connection for AWS"
+  description = format("Google to AWS via Transit GW connection for AWS - %s", var.name)
   bgp {
     asn = var.gcp_asn
     advertise_mode = "CUSTOM"
@@ -25,9 +24,9 @@ resource "google_compute_router" "ha_vpn_gateway_router" {
 }
 
 resource "google_compute_external_vpn_gateway" "external_gateway" {
-  name            = "aws-external-gateway"
+  name            = var.name
   redundancy_type = "FOUR_IPS_REDUNDANCY"
-  description     = "AWS Transit GW"
+  description     = format("AWS Transit GW - %s", var.name)
 
   dynamic "interface" {
     for_each = local.external_vpn_gateway_interfaces
@@ -44,8 +43,8 @@ resource "google_compute_external_vpn_gateway" "external_gateway" {
 resource "google_compute_vpn_tunnel" "tunnels" {
   for_each                        = local.external_vpn_gateway_interfaces
 
-  name                            = "gcp-tunnel${each.key}"
-  description                     = "Tunnel to AWS - HA VPN interface ${each.key} to AWS interface ${each.value.tunnel_address}"
+  name                            = format("%s-%s", var.name, each.key)
+  description                     = format("Tunnel to AWS - HA VPN interface %s to AWS interface %s - %s", each.key, each.value.tunnel_address, var.name)
   router                          = google_compute_router.ha_vpn_gateway_router.self_link
   ike_version                     = 2
   shared_secret                   = each.value.shared_secret
@@ -61,7 +60,7 @@ resource "google_compute_vpn_tunnel" "tunnels" {
 resource "google_compute_router_interface" "interfaces" {
   for_each   = local.external_vpn_gateway_interfaces
 
-  name       = "interface${each.key}"
+  name       = format("%s-interface%s", var.name, each.key)
   router     = google_compute_router.ha_vpn_gateway_router.name
   ip_range   = each.value.cgw_inside_address
   vpn_tunnel = google_compute_vpn_tunnel.tunnels[each.key].name
@@ -73,7 +72,7 @@ resource "google_compute_router_interface" "interfaces" {
 resource "google_compute_router_peer" "router_peers" {
   for_each        = local.external_vpn_gateway_interfaces
 
-  name            = "peer${each.key}"
+  name            = format("%s-peer%s", var.name, each.key)
   router          = google_compute_router.ha_vpn_gateway_router.name
   peer_ip_address = each.value.vgw_inside_address
   peer_asn        = each.value.asn
