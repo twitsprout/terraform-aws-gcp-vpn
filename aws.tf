@@ -36,12 +36,8 @@ resource "aws_vpn_connection" "vpn2" {
   tags                = merge({ Name = var.name }, local.interpolated_tags)
 }
 
-resource "aws_route" "gcp" {
-  count                  = length(var.aws_route_tables_ids)
-  route_table_id         = var.aws_route_tables_ids[count.index]
-  gateway_id             = aws_vpn_gateway.default.id
-  destination_cidr_block = var.gcp_cidr
-
-  # NB: tags not supported here
-  # tags = merge({Name = var.name}, local.interpolated_tags)
+resource "aws_vpn_gateway_route_propagation" "gcp" {
+  count                = length(var.aws_route_tables_ids)
+  vpn_gateway_id       = aws_vpn_gateway.default.id
+  route_table_id       = var.aws_route_tables_ids[count.index]
 }

@@ -49,3 +49,9 @@ variable "gcp_asn" {
   description = "Google Cloud side ASN"
   type        = number
 }
+
+variable "cloud_dns_route_propagation" {
+  description = "Wether you want to add GCP Cloud DNS (35.199.192.0/19) to propagated routes, so that you can use Cloud DNS zone forwarding to AWS"
+  type        = bool
+  default     = false
+}

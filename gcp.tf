@@ -17,6 +17,13 @@ resource "google_compute_router" "ha_vpn_gateway_router" {
       range = var.gcp_cidr
       description = var.gcp_cidr
     }
+    dynamic "advertised_ip_ranges" {
+      for_each = var.cloud_dns_route_propagation ? toset(["35.199.192.0/19"]) : toset([])
+      content {
+        range = advertised_ip_ranges.value
+        description = "Cloud DNS route propagation"
+      }
+    }
   }
 
   # NB: tags not supported here
