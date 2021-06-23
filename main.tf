@@ -4,4 +4,5 @@ locals {
     { "Environment" = var.environment },
     var.tags
   )
+  gcp_cloud_dns = "35.199.192.0/19"
 }

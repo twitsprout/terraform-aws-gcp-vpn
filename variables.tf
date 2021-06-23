@@ -25,14 +25,18 @@ variable "tags" {
 }
 
 # bellow are specific modules variables
-variable "gcp_cidr" {
-  description = "CIDR group for GCP network"
-  type        = string
-}
-
 variable "gcp_network" {
   description = "Network name for GCP"
   type        = string
+}
+
+variable "gcp_subnetworks" {
+  description = "Routing table ID for AWS. By default it will take all the subnetworks in the VPC"
+  type        = list(object({
+      name = string
+      region = string
+    }))
+  default     = null
 }
 
 variable "aws_vpc" {
@@ -41,8 +45,9 @@ variable "aws_vpc" {
 }
 
 variable "aws_route_tables_ids" {
-  description = "Routing table ID for AWS"
+  description = "Routing table ID for AWS. By default it will take all the route tables in the VPC"
   type        = list(string)
+  default     = null
 }
 
 variable "gcp_asn" {

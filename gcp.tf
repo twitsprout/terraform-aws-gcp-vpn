@@ -1,3 +1,18 @@
+# Fetch network 
+data "google_compute_network" "network" {
+  name = var.gcp_network
+}
+# Fetch subnetworks
+data "google_compute_subnetwork" "all_subnetworks" {
+  count  = length(data.google_compute_network.network.subnetworks_self_links)
+  self_link = data.google_compute_network.network.subnetworks_self_links[count.index]
+}
+data "google_compute_subnetwork" "subnetworks" {
+  count = var.gcp_subnetworks != null ? length(var.gcp_subnetworks) : 0
+  name  = var.gcp_subnetworks[count.index].name
+  region  = var.gcp_subnetworks[count.index].region
+}
+
 resource "google_compute_ha_vpn_gateway" "ha_vpn_gateway" {
   name    = var.name
   network = var.gcp_network
@@ -13,12 +28,22 @@ resource "google_compute_router" "ha_vpn_gateway_router" {
   bgp {
     asn = var.gcp_asn
     advertise_mode = "CUSTOM"
-    advertised_ip_ranges {
-      range = var.gcp_cidr
-      description = var.gcp_cidr
+    dynamic "advertised_ip_ranges" {
+      for_each = var.gcp_subnetworks != null ? toset([]) : toset(data.google_compute_subnetwork.all_subnetworks)
+      content {
+        range = advertised_ip_ranges.value.ip_cidr_range
+        description = advertised_ip_ranges.value.name
+      }
     }
     dynamic "advertised_ip_ranges" {
-      for_each = var.cloud_dns_route_propagation ? toset(["35.199.192.0/19"]) : toset([])
+      for_each = var.gcp_subnetworks != null ? toset(data.google_compute_subnetwork.subnetworks) : toset([])
+      content {
+        range = advertised_ip_ranges.value.ip_cidr_range
+        description = advertised_ip_ranges.value.name
+      }
+    }
+    dynamic "advertised_ip_ranges" {
+      for_each = var.cloud_dns_route_propagation ? toset([local.gcp_cloud_dns]) : toset([])
       content {
         range = advertised_ip_ranges.value
         description = "Cloud DNS route propagation"

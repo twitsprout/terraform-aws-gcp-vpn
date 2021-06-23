@@ -36,8 +36,12 @@ resource "aws_vpn_connection" "vpn2" {
   tags                = merge({ Name = var.name }, local.interpolated_tags)
 }
 
+data "aws_route_tables" "rts" {
+  vpc_id = var.aws_vpc
+}
+
 resource "aws_vpn_gateway_route_propagation" "gcp" {
-  count                = length(var.aws_route_tables_ids)
+  for_each             = var.aws_route_tables_ids != null ? toset(var.aws_route_tables_ids) : data.aws_route_tables.rts.ids
   vpn_gateway_id       = aws_vpn_gateway.default.id
-  route_table_id       = var.aws_route_tables_ids[count.index]
+  route_table_id       = each.value
 }

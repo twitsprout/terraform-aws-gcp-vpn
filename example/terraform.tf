@@ -54,17 +54,10 @@ resource "google_compute_subnetwork" "vpc_subnetworks" {
 
 module "gcp-vpn" {
   source  = "build-and-run/gcp-vpn/aws"
-  version = "0.2.0"
-
-  gcp_cidr = google_compute_subnetwork.vpc_subnetworks.ip_cidr_range
-
-  aws_region = "eu-west-1"
-  gcp_region = "us-east-1"
+  version = "1.0"
 
   aws_vpc            = aws_vpc.default.id
-  aws_sg             = aws_security_group.allow_nomad.id
-  aws_route_table_id = aws_vpc.default.main_route_table_id
-
-  gcp_network        = google_compute_network.vpc.id
+  gcp_network        = google_compute_network.vpc.name
+  
   gcp_asn            = 65500
 }
