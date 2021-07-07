@@ -57,7 +57,7 @@ resource "google_compute_router" "ha_vpn_gateway_router" {
 
 resource "google_compute_external_vpn_gateway" "external_gateway" {
   name            = var.name
-  redundancy_type = "FOUR_IPS_REDUNDANCY"
+  redundancy_type = var.ha_vpn ? "FOUR_IPS_REDUNDANCY" : "TWO_IPS_REDUNDANCY"
   description     = format("AWS Transit GW - %s", var.name)
 
   dynamic "interface" {
@@ -115,7 +115,7 @@ resource "google_compute_router_peer" "router_peers" {
 }
 
 locals {
-  external_vpn_gateway_interfaces = {
+  external_vpn_gateway_interfaces_nonha = {
     "0" = {
       tunnel_address        = aws_vpn_connection.vpn1.tunnel1_address
       vgw_inside_address    = aws_vpn_connection.vpn1.tunnel1_vgw_inside_address
@@ -131,22 +131,24 @@ locals {
       cgw_inside_address    = "${aws_vpn_connection.vpn1.tunnel2_cgw_inside_address}/30"
       shared_secret         = aws_vpn_connection.vpn1.tunnel2_preshared_key
       vpn_gateway_interface = 0
-    },
+    }
+  }
+  external_vpn_gateway_interfaces = var.ha_vpn ? merge(local.external_vpn_gateway_interfaces_nonha, {
     "2" = {
-      tunnel_address        = aws_vpn_connection.vpn2.tunnel1_address
-      vgw_inside_address    = aws_vpn_connection.vpn2.tunnel1_vgw_inside_address
-      asn                   = aws_vpn_connection.vpn2.tunnel1_bgp_asn
-      cgw_inside_address    = "${aws_vpn_connection.vpn2.tunnel1_cgw_inside_address}/30"
-      shared_secret         = aws_vpn_connection.vpn2.tunnel1_preshared_key
+      tunnel_address        = aws_vpn_connection.vpn2[0].tunnel1_address
+      vgw_inside_address    = aws_vpn_connection.vpn2[0].tunnel1_vgw_inside_address
+      asn                   = aws_vpn_connection.vpn2[0].tunnel1_bgp_asn
+      cgw_inside_address    = "${aws_vpn_connection.vpn2[0].tunnel1_cgw_inside_address}/30"
+      shared_secret         = aws_vpn_connection.vpn2[0].tunnel1_preshared_key
       vpn_gateway_interface = 1
     },
     "3" = {
-      tunnel_address        = aws_vpn_connection.vpn2.tunnel2_address
-      vgw_inside_address    = aws_vpn_connection.vpn2.tunnel2_vgw_inside_address
-      asn                   = aws_vpn_connection.vpn2.tunnel2_bgp_asn
-      cgw_inside_address    = "${aws_vpn_connection.vpn2.tunnel2_cgw_inside_address}/30"
-      shared_secret         = aws_vpn_connection.vpn2.tunnel2_preshared_key
+      tunnel_address        = aws_vpn_connection.vpn2[0].tunnel2_address
+      vgw_inside_address    = aws_vpn_connection.vpn2[0].tunnel2_vgw_inside_address
+      asn                   = aws_vpn_connection.vpn2[0].tunnel2_bgp_asn
+      cgw_inside_address    = "${aws_vpn_connection.vpn2[0].tunnel2_cgw_inside_address}/30"
+      shared_secret         = aws_vpn_connection.vpn2[0].tunnel2_preshared_key
       vpn_gateway_interface = 1
     },
-  }
+  }, local.external_vpn_gateway_interfaces_nonha) : local.external_vpn_gateway_interfaces_nonha
 }
