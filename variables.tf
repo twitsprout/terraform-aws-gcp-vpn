@@ -60,3 +60,9 @@ variable "cloud_dns_route_propagation" {
   type        = bool
   default     = false
 }
+
+variable "ha_vpn" {
+  description = "Creates an HA VPN with two tunnels"
+  type        = bool
+  default     = false
+}
