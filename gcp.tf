@@ -4,13 +4,13 @@ data "google_compute_network" "network" {
 }
 # Fetch subnetworks
 data "google_compute_subnetwork" "all_subnetworks" {
-  count  = length(data.google_compute_network.network.subnetworks_self_links)
+  count     = length(data.google_compute_network.network.subnetworks_self_links)
   self_link = data.google_compute_network.network.subnetworks_self_links[count.index]
 }
 data "google_compute_subnetwork" "subnetworks" {
-  count = var.gcp_subnetworks != null ? length(var.gcp_subnetworks) : 0
-  name  = var.gcp_subnetworks[count.index].name
-  region  = var.gcp_subnetworks[count.index].region
+  count  = var.gcp_subnetworks != null ? length(var.gcp_subnetworks) : 0
+  name   = var.gcp_subnetworks[count.index].name
+  region = var.gcp_subnetworks[count.index].region
 }
 
 resource "google_compute_ha_vpn_gateway" "ha_vpn_gateway" {
@@ -26,26 +26,26 @@ resource "google_compute_router" "ha_vpn_gateway_router" {
   network     = var.gcp_network
   description = format("Google to AWS via Transit GW connection for AWS - %s", var.name)
   bgp {
-    asn = var.gcp_asn
+    asn            = var.gcp_asn
     advertise_mode = "CUSTOM"
     dynamic "advertised_ip_ranges" {
       for_each = var.gcp_subnetworks != null ? toset([]) : toset(data.google_compute_subnetwork.all_subnetworks)
       content {
-        range = advertised_ip_ranges.value.ip_cidr_range
+        range       = advertised_ip_ranges.value.ip_cidr_range
         description = advertised_ip_ranges.value.name
       }
     }
     dynamic "advertised_ip_ranges" {
       for_each = var.gcp_subnetworks != null ? toset(data.google_compute_subnetwork.subnetworks) : toset([])
       content {
-        range = advertised_ip_ranges.value.ip_cidr_range
+        range       = advertised_ip_ranges.value.ip_cidr_range
         description = advertised_ip_ranges.value.name
       }
     }
     dynamic "advertised_ip_ranges" {
       for_each = var.cloud_dns_route_propagation ? toset([local.gcp_cloud_dns]) : toset([])
       content {
-        range = advertised_ip_ranges.value
+        range       = advertised_ip_ranges.value
         description = "Cloud DNS route propagation"
       }
     }
@@ -73,7 +73,7 @@ resource "google_compute_external_vpn_gateway" "external_gateway" {
 }
 
 resource "google_compute_vpn_tunnel" "tunnels" {
-  for_each                        = local.external_vpn_gateway_interfaces
+  for_each = local.external_vpn_gateway_interfaces
 
   name                            = format("%s-%s", var.name, each.key)
   description                     = format("Tunnel to AWS - HA VPN interface %s to AWS interface %s - %s", each.key, each.value.tunnel_address, var.name)
@@ -90,7 +90,7 @@ resource "google_compute_vpn_tunnel" "tunnels" {
 }
 
 resource "google_compute_router_interface" "interfaces" {
-  for_each   = local.external_vpn_gateway_interfaces
+  for_each = local.external_vpn_gateway_interfaces
 
   name       = format("%s-interface%s", var.name, each.key)
   router     = google_compute_router.ha_vpn_gateway_router.name
@@ -102,7 +102,7 @@ resource "google_compute_router_interface" "interfaces" {
 }
 
 resource "google_compute_router_peer" "router_peers" {
-  for_each        = local.external_vpn_gateway_interfaces
+  for_each = local.external_vpn_gateway_interfaces
 
   name            = format("%s-peer%s", var.name, each.key)
   router          = google_compute_router.ha_vpn_gateway_router.name

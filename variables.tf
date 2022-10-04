@@ -32,11 +32,11 @@ variable "gcp_network" {
 
 variable "gcp_subnetworks" {
   description = "Routing table ID for AWS. By default it will take all the subnetworks in the VPC"
-  type        = list(object({
-      name = string
-      region = string
-    }))
-  default     = null
+  type = list(object({
+    name   = string
+    region = string
+  }))
+  default = null
 }
 
 variable "aws_vpc" {
